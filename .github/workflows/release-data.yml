@@ -1,0 +1,56 @@
+name: Publish Data Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Base UI version (e.g. 1.2.3)'
+        required: true
+
+jobs:
+  release:
+    name: Create data release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout extension repo (for generator)
+        uses: actions/checkout@v4
+        with:
+          repository: IdoS350/base-ui-css-intellisense
+          path: extension
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: extension/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: extension/package.json
+          cache: pnpm
+          cache-dependency-path: extension/pnpm-lock.yaml
+
+      - name: Install extension dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: extension
+
+      - name: Clone Base UI at tag
+        run: |
+          git clone --depth 1 --branch v${{ inputs.version }} \
+            https://github.com/mui/base-ui.git /tmp/base-ui
+
+      - name: Generate data
+        run: pnpm generate /tmp/base-ui
+        working-directory: extension
+
+      - name: Create GitHub release with data asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "base-ui-v${{ inputs.version }}" \
+            --title "Base UI data v${{ inputs.version }}" \
+            --notes "Autocomplete data generated from Base UI v${{ inputs.version }}." \
+            extension/data/base-ui-attributes.json

@@ -6,6 +6,7 @@ on:
       version:
         description: 'Base UI version (e.g. 1.2.3)'
         required: true
+        default: 'latest'
 
 jobs:
   release:
@@ -16,6 +17,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve Base UI version
+        id: resolve
+        run: |
+          if [ "${{ inputs.version }}" != "latest" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            latest=$(gh release view --repo mui/base-ui --json tagName -q '.tagName | ltrimstr("v")')
+            echo "version=$latest" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout extension repo (for generator)
         uses: actions/checkout@v4
@@ -39,7 +52,7 @@ jobs:
 
       - name: Clone Base UI at tag
         run: |
-          git clone --depth 1 --branch v${{ inputs.version }} \
+          git clone --depth 1 --branch v${{ steps.resolve.outputs.version }} \
             https://github.com/mui/base-ui.git /tmp/base-ui
 
       - name: Generate data
@@ -50,7 +63,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "base-ui-v${{ inputs.version }}" \
-            --title "Base UI data v${{ inputs.version }}" \
-            --notes "Autocomplete data generated from Base UI v${{ inputs.version }}." \
+          gh release create "base-ui-v${{ steps.resolve.outputs.version }}" \
+            --title "Base UI data v${{ steps.resolve.outputs.version }}" \
+            --notes "Autocomplete data generated from Base UI v${{ steps.resolve.outputs.version }}." \
             extension/data/base-ui-attributes.json

@@ -16,7 +16,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve Base UI version
         id: resolve
@@ -31,18 +31,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout extension repo (for generator)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: IdoS350/base-ui-css-intellisense
           path: extension
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: extension/package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version-file: extension/package.json
+          node-version: '22'
           cache: pnpm
           cache-dependency-path: extension/pnpm-lock.yaml
 
